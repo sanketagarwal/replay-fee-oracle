@@ -1,0 +1,33 @@
+{
+  "name": "replay-fee-oracle",
+  "version": "0.1.0",
+  "description": "Unified fee calculation framework for Replay Labs API",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "replay-labs",
+    "fees",
+    "trading",
+    "kalshi",
+    "polymarket",
+    "aerodrome",
+    "hyperliquid"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0"
+  }
+}
