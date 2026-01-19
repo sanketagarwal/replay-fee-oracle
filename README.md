@@ -54,13 +54,14 @@ if (arb.is_profitable) {
 
 ### 1. Cross-Venue Prediction Market Arbitrage
 
-Same event, different prices across Kalshi and Polymarket:
+Same event, different prices across Kalshi and Polymarket. This is the core use case for `analyzeArbitrage()`:
 
 ```ts
-// Scan for profitable arbs
+// Scan for profitable arbs on the SAME EVENT across venues
 const opportunities = await findPriceDiscrepancies();
 
 for (const opp of opportunities) {
+  // Only works for prediction markets (Kalshi ↔ Polymarket)
   const analysis = await oracle.analyzeArbitrage([
     { venue: 'KALSHI', direction: 'BUY', size_usd: opp.size, price: opp.kalshiPrice },
     { venue: 'POLYMARKET', direction: 'SELL', size_usd: opp.size, price: opp.polymarketPrice },
@@ -71,6 +72,12 @@ for (const opp of opportunities) {
     await executeArb(analysis);
   }
 }
+
+// ⚠️ This would throw an error - can't arb across asset types:
+// oracle.analyzeArbitrage([
+//   { venue: 'KALSHI', ... },      // Prediction market
+//   { venue: 'HYPERLIQUID', ... }, // Perps - different asset!
+// ], ...);
 ```
 
 ### 2. Thin Liquidity Timing (arb-oppity integration)
@@ -227,12 +234,36 @@ async function backtest(trades: HistoricalTrade[]) {
 
 ## Supported Venues
 
+### Prediction Markets (Cross-Venue Arbitrage Eligible)
+
+These venues trade binary event contracts. The same event (e.g., "Trump wins 2024") can exist on both, enabling cross-venue arbitrage.
+
 | Venue | Fee Model | Key Features |
 |-------|-----------|--------------|
-| **Kalshi** | Probability-scaled | Higher fees at 50% odds (1%), lower at edges (0.2%) |
-| **Polymarket** | Maker/Taker | 0% maker, 1bp taker, minimal gas on Polygon |
-| **Hyperliquid** | Volume-tiered | 4 tiers based on 14-day volume + staking discounts |
-| **Aerodrome** | Pool-based | Varies by pool type: 1bp (stable) to 100bp (volatile CL) |
+| **Kalshi** | Probability-scaled | US-regulated. Higher fees at 50% odds (1%), lower at edges (0.2%) |
+| **Polymarket** | Maker/Taker | Crypto-native on Polygon. 0% maker, 1bp taker |
+
+### Crypto Trading Venues (Single-Venue Fee Calculation)
+
+These venues trade crypto assets. Cross-venue arbitrage doesn't apply (different asset classes).
+
+| Venue | Asset Type | Fee Model | Key Features |
+|-------|------------|-----------|--------------|
+| **Hyperliquid** | Perps | Volume-tiered | Perpetual futures. 4 tiers + staking discounts |
+| **Aerodrome** | Spot | Pool-based | DEX swaps on Base. 1bp (stable) to 100bp (volatile) |
+
+```ts
+import { VENUE_INFO, canArbitrage } from 'replay-fee-oracle';
+
+// Check venue categories
+VENUE_INFO['KALSHI'].category;      // 'PREDICTION_MARKET'
+VENUE_INFO['HYPERLIQUID'].category; // 'PERPS'
+VENUE_INFO['AERODROME'].category;   // 'SPOT_DEX'
+
+// Check if cross-venue arb is valid
+canArbitrage('KALSHI', 'POLYMARKET');   // true ✅
+canArbitrage('KALSHI', 'HYPERLIQUID');  // false ❌ (different asset types)
+```
 
 ## Installation
 

@@ -7,6 +7,9 @@ import {
   PolymarketFeeCalculator,
   HyperliquidFeeCalculator,
   AerodromeFeeCalculator,
+  canArbitrage,
+  VENUE_INFO,
+  PREDICTION_VENUES,
 } from '../src';
 
 describe('FeeOracle', () => {
@@ -298,5 +301,68 @@ describe('Singleton', () => {
     const oracle1 = getOracle();
     const oracle2 = getOracle();
     expect(oracle1).toBe(oracle2);
+  });
+});
+
+describe('Venue Categories', () => {
+  it('should categorize prediction markets correctly', () => {
+    expect(VENUE_INFO['KALSHI'].category).toBe('PREDICTION_MARKET');
+    expect(VENUE_INFO['POLYMARKET'].category).toBe('PREDICTION_MARKET');
+  });
+  
+  it('should categorize crypto venues correctly', () => {
+    expect(VENUE_INFO['HYPERLIQUID'].category).toBe('PERPS');
+    expect(VENUE_INFO['AERODROME'].category).toBe('SPOT_DEX');
+  });
+  
+  it('should list prediction venues', () => {
+    expect(PREDICTION_VENUES).toContain('KALSHI');
+    expect(PREDICTION_VENUES).toContain('POLYMARKET');
+    expect(PREDICTION_VENUES).not.toContain('HYPERLIQUID');
+    expect(PREDICTION_VENUES).not.toContain('AERODROME');
+  });
+});
+
+describe('canArbitrage', () => {
+  it('should allow arb between prediction markets', () => {
+    expect(canArbitrage('KALSHI', 'POLYMARKET')).toBe(true);
+    expect(canArbitrage('POLYMARKET', 'KALSHI')).toBe(true);
+  });
+  
+  it('should not allow arb between different asset types', () => {
+    expect(canArbitrage('KALSHI', 'HYPERLIQUID')).toBe(false);
+    expect(canArbitrage('KALSHI', 'AERODROME')).toBe(false);
+    expect(canArbitrage('POLYMARKET', 'HYPERLIQUID')).toBe(false);
+    expect(canArbitrage('POLYMARKET', 'AERODROME')).toBe(false);
+  });
+  
+  it('should not allow arb within same venue', () => {
+    expect(canArbitrage('KALSHI', 'KALSHI')).toBe(false);
+    expect(canArbitrage('POLYMARKET', 'POLYMARKET')).toBe(false);
+  });
+});
+
+describe('Cross-venue arbitrage validation', () => {
+  let oracle: FeeOracle;
+  
+  beforeEach(() => {
+    oracle = createOracle();
+  });
+  
+  it('should throw when trying to arb across different asset types', async () => {
+    await expect(oracle.analyzeArbitrage([
+      { venue: 'KALSHI', direction: 'BUY', size_usd: 1000, price: 0.50 },
+      { venue: 'HYPERLIQUID', direction: 'SELL', size_usd: 1000 },
+    ], 50)).rejects.toThrow('Cross-venue arbitrage not supported');
+  });
+  
+  it('should allow arb between prediction markets', async () => {
+    const result = await oracle.analyzeArbitrage([
+      { venue: 'KALSHI', direction: 'BUY', size_usd: 1000, price: 0.50 },
+      { venue: 'POLYMARKET', direction: 'SELL', size_usd: 1000, price: 0.55 },
+    ], 50);
+    
+    expect(result.legs).toHaveLength(2);
+    expect(result.total_fees_usd).toBeGreaterThan(0);
   });
 });

@@ -40,6 +40,7 @@ export { FeeOracle, getOracle, createOracle } from './oracle';
 // Types
 export type {
   Venue,
+  VenueCategory,
   OrderType,
   Confidence,
   FeeEstimate,
@@ -49,6 +50,13 @@ export type {
   VolumeTier,
   TradeLeg,
   ArbitrageAnalysis,
+} from './types';
+
+// Venue utilities
+export { 
+  VENUE_INFO, 
+  PREDICTION_VENUES, 
+  canArbitrage 
 } from './types';
 
 // Calculators (for advanced usage)

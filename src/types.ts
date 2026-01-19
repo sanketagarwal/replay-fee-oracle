@@ -7,6 +7,50 @@ export type OrderType = 'MARKET' | 'LIMIT';
 export type Confidence = 'high' | 'medium' | 'low';
 
 /**
+ * Venue categories by asset type
+ */
+export type VenueCategory = 'PREDICTION_MARKET' | 'SPOT_DEX' | 'PERPS';
+
+/**
+ * Venue metadata including category
+ */
+export const VENUE_INFO: Record<Venue, { category: VenueCategory; description: string }> = {
+  KALSHI: { 
+    category: 'PREDICTION_MARKET', 
+    description: 'US-regulated prediction market for binary event contracts' 
+  },
+  POLYMARKET: { 
+    category: 'PREDICTION_MARKET', 
+    description: 'Crypto-native prediction market on Polygon' 
+  },
+  HYPERLIQUID: { 
+    category: 'PERPS', 
+    description: 'Perpetual futures DEX for crypto assets' 
+  },
+  AERODROME: { 
+    category: 'SPOT_DEX', 
+    description: 'Spot DEX on Base for crypto asset swaps' 
+  },
+};
+
+/**
+ * Prediction market venues (eligible for cross-venue arbitrage)
+ */
+export const PREDICTION_VENUES: Venue[] = ['KALSHI', 'POLYMARKET'];
+
+/**
+ * Check if two venues are eligible for cross-venue arbitrage
+ * (must both be prediction markets trading the same event)
+ */
+export function canArbitrage(venue1: Venue, venue2: Venue): boolean {
+  return (
+    VENUE_INFO[venue1].category === 'PREDICTION_MARKET' &&
+    VENUE_INFO[venue2].category === 'PREDICTION_MARKET' &&
+    venue1 !== venue2
+  );
+}
+
+/**
  * Parameters for fee estimation
  */
 export interface FeeEstimateParams {

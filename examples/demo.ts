@@ -4,9 +4,33 @@
  * Run with: npx tsx examples/demo.ts
  */
 
-import { getOracle, type Venue } from '../src';
+import { getOracle, type Venue, VENUE_INFO, canArbitrage, PREDICTION_VENUES } from '../src';
 
 const oracle = getOracle();
+
+// ═══════════════════════════════════════════════════════════════
+// 0. VENUE CATEGORIES
+// ═══════════════════════════════════════════════════════════════
+
+console.log('\n' + '═'.repeat(60));
+console.log('🏛️  VENUE CATEGORIES');
+console.log('═'.repeat(60));
+
+console.log('\nPrediction Markets (cross-venue arb eligible):');
+for (const venue of PREDICTION_VENUES) {
+  console.log(`  • ${venue}: ${VENUE_INFO[venue].description}`);
+}
+
+console.log('\nCrypto Trading Venues (single-venue fee calc only):');
+const cryptoVenues: Venue[] = ['HYPERLIQUID', 'AERODROME'];
+for (const venue of cryptoVenues) {
+  console.log(`  • ${venue} [${VENUE_INFO[venue].category}]: ${VENUE_INFO[venue].description}`);
+}
+
+console.log('\nCan arbitrage check:');
+console.log(`  KALSHI ↔ POLYMARKET:   ${canArbitrage('KALSHI', 'POLYMARKET') ? '✅ Yes' : '❌ No'}`);
+console.log(`  KALSHI ↔ HYPERLIQUID:  ${canArbitrage('KALSHI', 'HYPERLIQUID') ? '✅ Yes' : '❌ No'} (different asset types)`);
+console.log(`  KALSHI ↔ AERODROME:    ${canArbitrage('KALSHI', 'AERODROME') ? '✅ Yes' : '❌ No'} (different asset types)`);
 
 // ═══════════════════════════════════════════════════════════════
 // 1. SINGLE TRADE FEE ESTIMATES
@@ -67,12 +91,14 @@ comparison.forEach((e, i) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 3. ARBITRAGE ANALYSIS
+// 3. PREDICTION MARKET ARBITRAGE (Kalshi ↔ Polymarket)
 // ═══════════════════════════════════════════════════════════════
 
 console.log('\n' + '═'.repeat(60));
-console.log('💰 ARBITRAGE ANALYSIS');
+console.log('💰 PREDICTION MARKET ARBITRAGE (Kalshi ↔ Polymarket only)');
 console.log('═'.repeat(60));
+console.log('\nNote: Cross-venue arb only applies to prediction markets');
+console.log('trading the same event on both Kalshi and Polymarket.');
 
 // Scenario 1: Small spread (likely unprofitable)
 console.log('\n--- Scenario 1: Small spread (2%) ---');

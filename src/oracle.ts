@@ -12,6 +12,7 @@ import type {
   TradeLeg, 
   ArbitrageAnalysis 
 } from './types';
+import { canArbitrage, VENUE_INFO } from './types';
 import { 
   type FeeCalculator,
   KalshiFeeCalculator, 
@@ -86,9 +87,16 @@ export class FeeOracle {
   }
   
   /**
-   * Analyze a multi-leg arbitrage trade
+   * Analyze a cross-venue prediction market arbitrage
    * 
-   * @param legs - Trade legs (buy/sell on different venues)
+   * NOTE: Cross-venue arbitrage only applies to prediction markets (Kalshi ↔ Polymarket)
+   * where the same event can be traded on both venues.
+   * 
+   * For other venue types:
+   * - Hyperliquid: Perps trading (funding rate arb, basis trade - different analysis)
+   * - Aerodrome: Spot DEX swaps (DEX aggregator routing - different analysis)
+   * 
+   * @param legs - Trade legs (buy/sell on different prediction market venues)
    * @param grossProfit - Expected gross profit before fees
    * @param minProfitThresholdPct - Minimum profit % to be considered profitable (default 0.5%)
    */
@@ -97,6 +105,26 @@ export class FeeOracle {
     grossProfit: number,
     minProfitThresholdPct: number = 0.5
   ): Promise<ArbitrageAnalysis> {
+    // Validate that all legs are from compatible venues (prediction markets)
+    const venues = legs.map(l => l.venue);
+    const uniqueVenues = [...new Set(venues)];
+    
+    if (uniqueVenues.length >= 2) {
+      for (let i = 0; i < uniqueVenues.length; i++) {
+        for (let j = i + 1; j < uniqueVenues.length; j++) {
+          const v1 = uniqueVenues[i]!;
+          const v2 = uniqueVenues[j]!;
+          if (!canArbitrage(v1, v2)) {
+            throw new Error(
+              `Cross-venue arbitrage not supported between ${v1} (${VENUE_INFO[v1].category}) ` +
+              `and ${v2} (${VENUE_INFO[v2].category}). ` +
+              `Cross-venue arb only applies to prediction markets (Kalshi ↔ Polymarket).`
+            );
+          }
+        }
+      }
+    }
+    
     // Estimate fees for each leg
     const legEstimates = await Promise.all(
       legs.map(leg => this.estimate({
