@@ -123,7 +123,9 @@ describe('KalshiFeeCalculator', () => {
     calculator = new KalshiFeeCalculator();
   });
   
-  it('should have higher fees at 50% probability', async () => {
+  it('should use formula: 0.07 × contracts × P × (1-P)', async () => {
+    // $1000 at 50% = 2000 contracts
+    // Fee = 0.07 × 2000 × 0.50 × 0.50 = $35
     const at50 = await calculator.estimate({
       venue: 'KALSHI',
       size_usd: 1000,
@@ -131,6 +133,13 @@ describe('KalshiFeeCalculator', () => {
       order_type: 'MARKET',
     });
     
+    expect(at50.total_fee_usd).toBeCloseTo(35, 0);
+  });
+  
+  it('should have higher fees at extreme odds due to more contracts', async () => {
+    // At lower prices, same $USD buys more contracts
+    // $1000 at 10% = 10000 contracts → fee = 0.07 × 10000 × 0.1 × 0.9 = $63
+    // $1000 at 50% = 2000 contracts → fee = 0.07 × 2000 × 0.5 × 0.5 = $35
     const at10 = await calculator.estimate({
       venue: 'KALSHI',
       size_usd: 1000,
@@ -138,18 +147,18 @@ describe('KalshiFeeCalculator', () => {
       order_type: 'MARKET',
     });
     
-    // Fee at 50% should be higher than at 10% (probability scaling)
-    expect(at50.total_fee_usd).toBeGreaterThan(at10.total_fee_usd);
-  });
-  
-  it('should have lower fees for maker orders', async () => {
-    const taker = await calculator.estimate({
+    const at50 = await calculator.estimate({
       venue: 'KALSHI',
       size_usd: 1000,
       price: 0.50,
       order_type: 'MARKET',
     });
     
+    // More contracts at low price = higher total fee
+    expect(at10.total_fee_usd).toBeGreaterThan(at50.total_fee_usd);
+  });
+  
+  it('should have zero maker fees for most markets', async () => {
     const maker = await calculator.estimate({
       venue: 'KALSHI',
       size_usd: 1000,
@@ -157,7 +166,15 @@ describe('KalshiFeeCalculator', () => {
       order_type: 'LIMIT',
     });
     
-    expect(maker.total_fee_usd).toBeLessThan(taker.total_fee_usd);
+    // Maker fee is 0 for most markets
+    expect(maker.breakdown.exchange_fee).toBe(0);
+  });
+  
+  it('should calculate correctly with explicit contract count', async () => {
+    // 100 contracts at $0.50, taker
+    // Fee = 0.07 × 100 × 0.50 × 0.50 = $1.75
+    const estimate = await calculator.estimateByContracts(100, 0.50, 'MARKET');
+    expect(estimate.breakdown.exchange_fee).toBeCloseTo(1.75, 2);
   });
 });
 

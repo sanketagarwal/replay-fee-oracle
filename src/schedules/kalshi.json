@@ -1,51 +1,52 @@
 {
   "venue": "KALSHI",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "updated_at": "2026-01-19T00:00:00Z",
-  "source": "kalshi_help_docs",
+  "source": "kalshi_official_docs",
   "source_url": "https://help.kalshi.com/trading/fees",
-  "disclaimer": "Kalshi fees are variable by market and probability. Verify before trading.",
+  "disclaimer": "Kalshi fees use formula: coefficient × contracts × P × (1-P). Some markets have special fees.",
   
-  "fee_model": "probability_scaled",
-  "description": "Kalshi fees scale with probability - higher fees near 50%, lower at edges",
+  "fee_model": "probability_formula",
+  "description": "Fee = coefficient × contracts × P × (1-P), where P is contract price (0-1)",
   
-  "base_fees": {
-    "maker_fee_bps": 0,
-    "taker_fee_bps": 100,
-    "notes": "Base rates - actual fees vary by market probability"
-  },
-  
-  "probability_curve": {
-    "description": "Fee multiplier based on contract price (probability)",
-    "curve": [
-      { "price_min": 0.00, "price_max": 0.05, "multiplier": 0.20 },
-      { "price_min": 0.05, "price_max": 0.10, "multiplier": 0.40 },
-      { "price_min": 0.10, "price_max": 0.20, "multiplier": 0.60 },
-      { "price_min": 0.20, "price_max": 0.30, "multiplier": 0.80 },
-      { "price_min": 0.30, "price_max": 0.40, "multiplier": 0.90 },
-      { "price_min": 0.40, "price_max": 0.60, "multiplier": 1.00 },
-      { "price_min": 0.60, "price_max": 0.70, "multiplier": 0.90 },
-      { "price_min": 0.70, "price_max": 0.80, "multiplier": 0.80 },
-      { "price_min": 0.80, "price_max": 0.90, "multiplier": 0.60 },
-      { "price_min": 0.90, "price_max": 0.95, "multiplier": 0.40 },
-      { "price_min": 0.95, "price_max": 1.00, "multiplier": 0.20 }
+  "fee_formula": {
+    "taker_coefficient": 0.07,
+    "maker_coefficient": 0.0175,
+    "maker_coefficient_most_markets": 0,
+    "formula": "fee = coefficient × num_contracts × P × (1 - P)",
+    "notes": [
+      "Taker fee: 0.07 × C × P × (1-P)",
+      "Maker fee: 0.0175 × C × P × (1-P) for sports/macro markets",
+      "Maker fee: 0 for most other markets",
+      "Maximum fee occurs at P=0.50 where P×(1-P)=0.25"
     ]
   },
   
-  "settlement_fee": {
-    "enabled": false,
-    "fee_bps": 0,
-    "notes": "No separate settlement fee as of 2026"
-  },
-  
-  "min_fee_usd": 0.00,
-  "max_fee_pct": 7.0,
-  
-  "volume_tiers": null,
-  
+  "contract_value_cents": 100,
   "notes": [
-    "Fees are charged on contract value, not profit",
-    "Probability-based scaling means lower fees at extreme odds",
-    "Market-specific fees may override these defaults"
+    "Each contract pays $1 if correct, $0 if wrong",
+    "Price is in cents (1-99) or decimal (0.01-0.99)",
+    "Fee is per contract, not per dollar"
+  ],
+  
+  "examples": [
+    {
+      "description": "Buy 100 contracts at $0.50 (taker)",
+      "contracts": 100,
+      "price": 0.50,
+      "fee_calc": "0.07 × 100 × 0.50 × 0.50 = $1.75"
+    },
+    {
+      "description": "Buy 100 contracts at $0.10 (taker)",
+      "contracts": 100,
+      "price": 0.10,
+      "fee_calc": "0.07 × 100 × 0.10 × 0.90 = $0.63"
+    },
+    {
+      "description": "Buy 100 contracts at $0.90 (taker)",
+      "contracts": 100,
+      "price": 0.90,
+      "fee_calc": "0.07 × 100 × 0.90 × 0.10 = $0.63"
+    }
   ]
 }
