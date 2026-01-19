@@ -1,73 +1,88 @@
 /**
- * Replay Fee Oracle — Type Definitions
- * 
- * Unified types for fee calculation across all venues.
+ * Core Types for Replay Fee Oracle
  */
 
-// Supported venues
-export type Venue = 'KALSHI' | 'POLYMARKET' | 'AERODROME' | 'HYPERLIQUID';
-
-// Order types
-export type OrderType = 'LIMIT' | 'MARKET';
-export type Side = 'BUY' | 'SELL';
-
-// Confidence levels for estimates
+export type Venue = 'KALSHI' | 'POLYMARKET' | 'HYPERLIQUID' | 'AERODROME';
+export type OrderType = 'MARKET' | 'LIMIT';
 export type Confidence = 'high' | 'medium' | 'low';
 
 /**
- * Input parameters for fee estimation
+ * Parameters for fee estimation
  */
 export interface FeeEstimateParams {
+  /** Trading venue */
   venue: Venue;
-  order_type: OrderType;
-  side: Side;
-  size_usd: number;
-  price?: number;  // 0-1 for prediction markets, token price for DEX
   
-  // Venue-specific params
-  pool_address?: string;      // Aerodrome
-  market_ticker?: string;     // Kalshi
-  token_id?: string;          // Polymarket
-  coin?: string;              // Hyperliquid
+  /** Trade size in USD */
+  size_usd: number;
+  
+  /** Order type (MARKET = taker, LIMIT = maker) */
+  order_type?: OrderType;
+  
+  /** Contract price (0-1 for prediction markets) */
+  price?: number;
+  
+  /** Market/contract identifier */
+  market_id?: string;
+  
+  /** Token/contract identifier (for Polymarket) */
+  token_id?: string;
+  
+  /** Pool address (for DEXs like Aerodrome) */
+  pool_address?: string;
 }
 
 /**
- * Fee breakdown by type
- */
-export interface FeeBreakdown {
-  exchange_fee: number;       // Core trading fee
-  settlement_fee?: number;    // Settlement/clearing fee (Kalshi)
-  gas_fee?: number;           // On-chain gas (Aerodrome, Polymarket)
-  funding_cost?: number;      // Funding rate cost (Hyperliquid perps)
-  slippage_estimate?: number; // Expected slippage for market orders
-}
-
-/**
- * Unified fee estimate response
+ * Fee estimate result
  */
 export interface FeeEstimate {
+  /** Venue this estimate is for */
   venue: Venue;
-  timestamp: string;          // ISO 8601
   
-  // Cost breakdown
-  gross_cost: number;         // size_usd * price (what you're buying)
-  fees: FeeBreakdown;
-  total_fee: number;          // Sum of all fees
-  net_cost: number;           // gross_cost + total_fee
+  /** Input trade size */
+  size_usd: number;
   
-  // Fee as percentage
-  fee_pct: number;            // total_fee / gross_cost * 100
+  /** Total estimated fee in USD */
+  total_fee_usd: number;
   
-  // Confidence and assumptions
+  /** Fee as percentage of trade size */
+  fee_pct: number;
+  
+  /** Fee breakdown */
+  breakdown: FeeBreakdown;
+  
+  /** Estimate confidence */
   confidence: Confidence;
-  assumptions: string[];      // Human-readable assumptions made
   
-  // Metadata
-  schedule_version?: string;  // Version of fee schedule used
+  /** Assumptions made in calculation */
+  assumptions: string[];
+  
+  /** Timestamp of estimate */
+  estimated_at: string;
 }
 
 /**
- * Volume tier definition
+ * Breakdown of fee components
+ */
+export interface FeeBreakdown {
+  /** Exchange/platform trading fee */
+  exchange_fee: number;
+  
+  /** Gas fee (for on-chain venues) */
+  gas_fee?: number;
+  
+  /** Estimated slippage cost */
+  slippage_estimate?: number;
+  
+  /** Settlement/resolution fee */
+  settlement_fee?: number;
+  
+  /** Any rebates or credits */
+  rebate?: number;
+}
+
+/**
+ * Volume tier for tiered fee structures
  */
 export interface VolumeTier {
   min_volume_usd: number;
@@ -77,81 +92,82 @@ export interface VolumeTier {
 }
 
 /**
- * Fee schedule for a venue
+ * Fee schedule metadata
  */
 export interface FeeSchedule {
   venue: Venue;
-  updated_at: string;         // ISO 8601
-  version: string;            // Semantic version
+  updated_at: string;
+  version: string;
   
-  // Base fees (in basis points, 100 bps = 1%)
+  /** Base maker fee in basis points */
   maker_fee_bps: number;
+  
+  /** Base taker fee in basis points */
   taker_fee_bps: number;
   
-  // Volume tiers (optional)
+  /** Volume tiers (if applicable) */
   tiers?: VolumeTier[];
   
-  // Additional fees
-  settlement_fee_bps?: number;
-  min_fee_usd?: number;
+  /** Pool-specific fees (for DEXs) */
+  pool_fees?: {
+    concentrated_bps: number;
+    stable_bps: number;
+    volatile_bps: number;
+  };
   
-  // Gas estimates (for on-chain venues)
+  /** Gas estimate (for on-chain venues) */
   gas_estimate?: {
-    avg_gas_units: number;
-    avg_gas_price_gwei: number;
+    chain: string;
+    avg_gas_units?: number;
+    avg_gas_price_gwei?: number;
     avg_cost_usd: number;
   };
   
-  // Pool-specific fees (Aerodrome)
-  pool_fees?: {
-    concentrated_bps: number;   // CL pools
-    stable_bps: number;         // Stable pools
-    volatile_bps: number;       // Volatile pools
-  };
+  /** Source of fee schedule */
+  source: string;
+  source_url: string;
   
-  // Metadata
-  source: string;             // Where this data came from
-  source_url?: string;
+  /** Disclaimer */
   disclaimer: string;
 }
 
 /**
- * Cross-venue comparison result
+ * Multi-leg trade for arbitrage calculations
  */
-export interface VenueComparison {
+export interface TradeLeg {
   venue: Venue;
-  total_fee: number;
-  fee_pct: number;
-  available: boolean;         // Is this venue available for this trade?
-  note?: string;              // Why unavailable, or special notes
-}
-
-export interface FeeComparisonResult {
-  comparison: VenueComparison[];
-  cheapest: Venue | null;
-  savings_usd: number;        // vs most expensive
-  savings_pct: number;
-  notes: string[];
+  direction: 'BUY' | 'SELL';
+  size_usd: number;
+  price?: number;
+  market_id?: string;
+  order_type?: OrderType;
 }
 
 /**
- * Calculator interface — all venue calculators implement this
+ * Arbitrage analysis result
  */
-export interface FeeCalculator {
-  venue: Venue;
+export interface ArbitrageAnalysis {
+  /** Trade legs */
+  legs: TradeLeg[];
   
-  /**
-   * Estimate fees for a trade
-   */
-  estimate(params: FeeEstimateParams): Promise<FeeEstimate>;
+  /** Gross profit before fees */
+  gross_profit_usd: number;
   
-  /**
-   * Get the fee schedule for this venue
-   */
-  getSchedule(): FeeSchedule;
+  /** Total fees across all legs */
+  total_fees_usd: number;
   
-  /**
-   * Check if this calculator can handle the given params
-   */
-  canHandle(params: FeeEstimateParams): boolean;
+  /** Net profit after fees */
+  net_profit_usd: number;
+  
+  /** Net profit as percentage */
+  net_profit_pct: number;
+  
+  /** Per-leg fee estimates */
+  leg_estimates: FeeEstimate[];
+  
+  /** Is this arbitrage profitable after fees? */
+  is_profitable: boolean;
+  
+  /** Minimum profit threshold used */
+  min_profit_threshold_pct: number;
 }

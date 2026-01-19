@@ -1,0 +1,57 @@
+{
+  "venue": "POLYMARKET",
+  "version": "1.0.0",
+  "updated_at": "2026-01-19T00:00:00Z",
+  "source": "polymarket_docs",
+  "source_url": "https://docs.polymarket.com/polymarket-learn/trading/fees",
+  "disclaimer": "Polymarket fees may vary by market type. Verify before trading.",
+  
+  "fee_model": "maker_taker",
+  "description": "Standard CLOB maker/taker model with maker rebates",
+  
+  "base_fees": {
+    "maker_fee_bps": 0,
+    "taker_fee_bps": 1,
+    "notes": "0% maker, 0.01% (1bp) taker for most markets"
+  },
+  
+  "special_markets": {
+    "short_duration_crypto": {
+      "description": "15-minute crypto markets have variable taker fees",
+      "taker_fee_bps": 50,
+      "maker_rebate_enabled": true,
+      "notes": "Taker fees fund maker rebates program"
+    }
+  },
+  
+  "maker_rebates": {
+    "enabled": true,
+    "description": "Maker rebates program redistributes taker fees to liquidity providers",
+    "rebate_source": "taker_fees",
+    "payout_frequency": "daily"
+  },
+  
+  "settlement_fee": {
+    "enabled": false,
+    "fee_bps": 0
+  },
+  
+  "gas_estimate": {
+    "chain": "polygon",
+    "avg_gas_units": 150000,
+    "avg_gas_price_gwei": 30,
+    "avg_cost_usd": 0.01,
+    "notes": "Gas costs on Polygon are minimal"
+  },
+  
+  "min_fee_usd": 0.0001,
+  
+  "volume_tiers": null,
+  
+  "notes": [
+    "Most markets have 0% maker fee",
+    "Taker fee is 1 basis point (0.01%)",
+    "Short-duration crypto markets have higher fees",
+    "Maker rebates available for liquidity providers"
+  ]
+}

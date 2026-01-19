@@ -1,68 +1,71 @@
 /**
- * Fee Calculator Interface
+ * Base Fee Calculator Interface
  * 
- * All venue-specific calculators implement this interface.
- * This ensures a unified API regardless of venue differences.
+ * All venue-specific calculators extend this.
  */
 
-import type {
-  Venue,
-  FeeCalculator,
-  FeeEstimate,
-  FeeEstimateParams,
-  FeeSchedule,
-} from '../types';
+import type { Venue, FeeEstimate, FeeEstimateParams, FeeSchedule, FeeBreakdown, Confidence } from '../types';
 
 /**
- * Base class for fee calculators
- * Provides common functionality and enforces the interface
+ * Fee calculator interface that all venue implementations must follow
  */
-export abstract class BaseFeeCalculator implements FeeCalculator {
-  abstract venue: Venue;
+export interface FeeCalculator {
+  /** Venue this calculator handles */
+  readonly venue: Venue;
   
   /**
    * Estimate fees for a trade
-   * Must be implemented by each venue calculator
    */
-  abstract estimate(params: FeeEstimateParams): Promise<FeeEstimate>;
+  estimate(params: FeeEstimateParams): Promise<FeeEstimate>;
   
   /**
-   * Get the fee schedule for this venue
-   * Must be implemented by each venue calculator
+   * Get the current fee schedule for this venue
    */
+  getSchedule(): FeeSchedule;
+}
+
+/**
+ * Base class with common functionality
+ */
+export abstract class BaseFeeCalculator implements FeeCalculator {
+  abstract readonly venue: Venue;
+  
+  abstract estimate(params: FeeEstimateParams): Promise<FeeEstimate>;
   abstract getSchedule(): FeeSchedule;
   
   /**
-   * Check if this calculator can handle the given params
-   * Default: check if venue matches
-   */
-  canHandle(params: FeeEstimateParams): boolean {
-    return params.venue === this.venue;
-  }
-  
-  /**
-   * Helper: Create a FeeEstimate with common fields populated
+   * Create a fee estimate response
    */
   protected createEstimate(
     params: FeeEstimateParams,
-    fees: FeeEstimate['fees'],
-    confidence: FeeEstimate['confidence'],
+    breakdown: Partial<FeeBreakdown>,
+    confidence: Confidence,
     assumptions: string[]
   ): FeeEstimate {
-    const grossCost = params.size_usd * (params.price ?? 1);
-    const totalFee = Object.values(fees).reduce((sum, fee) => sum + (fee ?? 0), 0);
+    const exchangeFee = breakdown.exchange_fee ?? 0;
+    const gasFee = breakdown.gas_fee ?? 0;
+    const slippage = breakdown.slippage_estimate ?? 0;
+    const settlement = breakdown.settlement_fee ?? 0;
+    const rebate = breakdown.rebate ?? 0;
+    
+    const totalFee = exchangeFee + gasFee + slippage + settlement - rebate;
+    const feePct = params.size_usd > 0 ? (totalFee / params.size_usd) * 100 : 0;
     
     return {
       venue: this.venue,
-      timestamp: new Date().toISOString(),
-      gross_cost: grossCost,
-      fees,
-      total_fee: totalFee,
-      net_cost: grossCost + totalFee,
-      fee_pct: (totalFee / grossCost) * 100,
+      size_usd: params.size_usd,
+      total_fee_usd: totalFee,
+      fee_pct: feePct,
+      breakdown: {
+        exchange_fee: exchangeFee,
+        gas_fee: gasFee || undefined,
+        slippage_estimate: slippage || undefined,
+        settlement_fee: settlement || undefined,
+        rebate: rebate || undefined,
+      },
       confidence,
       assumptions,
-      schedule_version: this.getSchedule().version,
+      estimated_at: new Date().toISOString(),
     };
   }
 }

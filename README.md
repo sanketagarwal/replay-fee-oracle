@@ -1,189 +1,158 @@
 # Replay Fee Oracle
 
-Unified fee calculation framework for Replay Labs API. Provides fee estimates across all supported venues with a common interface.
+Unified fee calculation framework for multi-venue trading. Provides accurate fee estimates for arbitrage analysis across prediction markets and DEXs.
 
-## Overview
+## Supported Venues
 
-Different trading venues have different fee structures:
-- **Kalshi**: Maker/taker fees, volume tiers
-- **Polymarket**: CLOB fees
-- **Aerodrome**: Pool fees (0.05%/0.3%/1%) + gas
-- **Hyperliquid**: Maker/taker + funding rates
+| Venue | Fee Model | Notes |
+|-------|-----------|-------|
+| **Kalshi** | Probability-scaled | Higher fees at 50% odds, lower at edges |
+| **Polymarket** | Maker/Taker | 0% maker, 1bp taker |
+| **Hyperliquid** | Volume-tiered | Staking discounts available |
+| **Aerodrome** | Pool-based | Varies by pool type (concentrated, stable, volatile) |
 
-This module provides:
-1. **Unified interface** — Same output schema regardless of venue
-2. **Per-venue implementations** — Specialized logic for each venue
-3. **Fee schedules** — Maintained, versioned fee data
-4. **Cross-venue comparison** — Compare costs across venues
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     GET /api/fees/estimate                      │
-│                                                                 │
-│  Input: venue, order_type, size, price                         │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        Fee Router                               │
-│                                                                 │
-│  Routes to correct calculator based on venue parameter          │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│    Kalshi     │   │  Polymarket   │   │   Aerodrome   │   ...
-│  Calculator   │   │  Calculator   │   │  Calculator   │
-└───────────────┘   └───────────────┘   └───────────────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     FeeEstimate (unified)                       │
-│                                                                 │
-│  { venue, gross_cost, fees: {...}, total_fee, confidence }     │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## API
-
-### Estimate Fees
+## Installation
 
 ```bash
-GET /api/fees/estimate
-  ?venue=KALSHI
-  &order_type=LIMIT
-  &side=BUY
-  &size_usd=100
-  &price=0.52
+npm install
 ```
 
-Response:
-```json
-{
-  "venue": "KALSHI",
-  "gross_cost": 52.00,
-  "fees": {
-    "exchange_fee": 0.52,
-    "settlement_fee": 0.00
-  },
-  "total_fee": 0.52,
-  "net_cost": 52.52,
-  "confidence": "medium",
-  "assumptions": [
-    "Assumed limit order (maker fee)",
-    "Standard tier pricing"
-  ]
-}
+## Usage
+
+### Basic Fee Estimation
+
+```ts
+import { getOracle } from 'replay-fee-oracle';
+
+const oracle = getOracle();
+
+// Estimate fee for a single trade
+const estimate = await oracle.estimate({
+  venue: 'KALSHI',
+  size_usd: 1000,
+  price: 0.65,
+  order_type: 'MARKET',
+});
+
+console.log(`Fee: $${estimate.total_fee_usd.toFixed(2)} (${estimate.fee_pct.toFixed(3)}%)`);
+// Fee: $6.50 (0.650%)
+```
+
+### Arbitrage Analysis
+
+```ts
+const arb = await oracle.analyzeArbitrage(
+  [
+    { venue: 'KALSHI', direction: 'BUY', size_usd: 1000, price: 0.60 },
+    { venue: 'POLYMARKET', direction: 'SELL', size_usd: 1000, price: 0.65 },
+  ],
+  50, // $50 gross profit
+  0.5  // 0.5% min profit threshold
+);
+
+console.log(`Gross: $${arb.gross_profit_usd}`);
+console.log(`Fees: $${arb.total_fees_usd.toFixed(2)}`);
+console.log(`Net: $${arb.net_profit_usd.toFixed(2)}`);
+console.log(`Profitable: ${arb.is_profitable}`);
 ```
 
 ### Compare Venues
 
-```bash
-GET /api/fees/compare
-  ?venues=KALSHI,POLYMARKET
-  &size_usd=100
+```ts
+const estimates = await oracle.compareVenues(1000, { 
+  price: 0.5, 
+  order_type: 'MARKET' 
+});
+
+estimates.forEach(e => {
+  console.log(`${e.venue}: $${e.total_fee_usd.toFixed(2)} (${e.fee_pct.toFixed(3)}%)`);
+});
 ```
 
-Response:
-```json
+### User Context (Hyperliquid)
+
+```ts
+import { HyperliquidFeeCalculator } from 'replay-fee-oracle';
+
+// With volume tier and staking
+const calculator = new HyperliquidFeeCalculator({
+  volume_14d_usd: 10_000_000, // $10M volume
+  hype_staked: 10000,         // 10% discount
+});
+
+const estimate = await calculator.estimate({
+  venue: 'HYPERLIQUID',
+  size_usd: 10000,
+  order_type: 'MARKET',
+});
+// Lower fees due to tier + staking discount
+```
+
+## API Reference
+
+### `FeeOracle`
+
+Main entry point for fee calculations.
+
+| Method | Description |
+|--------|-------------|
+| `estimate(params)` | Estimate fee for a single trade |
+| `getSchedule(venue)` | Get fee schedule for a venue |
+| `getAllSchedules()` | Get all fee schedules |
+| `analyzeArbitrage(legs, grossProfit, threshold)` | Analyze multi-leg arbitrage |
+| `compareVenues(sizeUsd, options)` | Compare fees across venues |
+
+### `FeeEstimateParams`
+
+```ts
 {
-  "comparison": [
-    { "venue": "KALSHI", "total_fee": 0.52, "fee_pct": 0.52 },
-    { "venue": "POLYMARKET", "total_fee": 0.35, "fee_pct": 0.35 }
-  ],
-  "cheapest": "POLYMARKET",
-  "savings_usd": 0.17
+  venue: 'KALSHI' | 'POLYMARKET' | 'HYPERLIQUID' | 'AERODROME';
+  size_usd: number;
+  order_type?: 'MARKET' | 'LIMIT';  // default: MARKET
+  price?: number;                    // 0-1 for prediction markets
+  market_id?: string;
+  token_id?: string;
+  pool_address?: string;
 }
 ```
 
-### Get Fee Schedule
+### `FeeEstimate`
 
-```bash
-GET /api/fees/schedule?venue=KALSHI
-```
-
-Response:
-```json
+```ts
 {
-  "venue": "KALSHI",
-  "updated_at": "2026-01-15T00:00:00Z",
-  "maker_fee_bps": 0,
-  "taker_fee_bps": 100,
-  "tiers": [
-    { "min_volume_usd": 0, "maker_fee_bps": 0, "taker_fee_bps": 100 },
-    { "min_volume_usd": 100000, "maker_fee_bps": 0, "taker_fee_bps": 70 }
-  ],
-  "source": "kalshi_public_docs",
-  "disclaimer": "Fees may change. Verify before trading."
+  venue: Venue;
+  size_usd: number;
+  total_fee_usd: number;
+  fee_pct: number;
+  breakdown: {
+    exchange_fee: number;
+    gas_fee?: number;
+    slippage_estimate?: number;
+    settlement_fee?: number;
+    rebate?: number;
+  };
+  confidence: 'high' | 'medium' | 'low';
+  assumptions: string[];
+  estimated_at: string;
 }
 ```
 
-## Supported Venues
+## Fee Schedules
 
-| Venue | Status | Fee Types |
-|-------|--------|-----------|
-| Kalshi | 🔜 Planned | Maker/taker, volume tiers |
-| Polymarket | 🔜 Planned | CLOB fees |
-| Aerodrome | 🔜 Planned | Pool fee + gas |
-| Hyperliquid | 🔜 Planned | Maker/taker + funding |
-
-## Project Structure
-
-```
-replay-fee-oracle/
-├── src/
-│   ├── calculators/
-│   │   ├── interface.ts         # FeeCalculator interface
-│   │   ├── kalshi.ts
-│   │   ├── polymarket.ts
-│   │   ├── aerodrome.ts
-│   │   ├── hyperliquid.ts
-│   │   └── index.ts             # Factory/router
-│   │
-│   ├── schedules/               # Fee schedule data
-│   │   ├── kalshi.json
-│   │   ├── polymarket.json
-│   │   ├── aerodrome.json
-│   │   └── hyperliquid.json
-│   │
-│   ├── api/
-│   │   ├── estimate.ts
-│   │   ├── compare.ts
-│   │   └── schedule.ts
-│   │
-│   └── types.ts
-│
-├── docs/
-│   └── api-spec.md
-│
-└── README.md
-```
+Fee schedules are stored in `src/schedules/` as JSON files. Update these when venues change their fee structures.
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
+# Type check
+npm run type-check
 
 # Run tests
-pnpm test
+npm test
 
 # Build
-pnpm build
+npm run build
 ```
-
-## Contributing to Replay Labs
-
-This module is designed to be integrated into the Replay Labs API as:
-- `GET /api/fees/estimate`
-- `GET /api/fees/compare`
-- `GET /api/fees/schedule`
 
 ## License
 
