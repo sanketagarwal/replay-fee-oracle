@@ -4,6 +4,28 @@
 
 Replay Fee Oracle is a unified fee calculation framework that answers the critical question: *"After fees, is this trade actually profitable?"*
 
+---
+
+## ⚠️ Important: Fee Estimate Accuracy
+
+**Current mode: `PUBLIC_SCHEDULE`** — estimates based on publicly documented fee structures.
+
+| What this does | What this doesn't do |
+|----------------|---------------------|
+| ✅ Uses official fee docs (Kalshi, Polymarket, etc.) | ❌ Account-specific fees |
+| ✅ Applies probability curves (Kalshi) | ❌ Your actual volume tier |
+| ✅ Includes gas estimates (Polygon, Base) | ❌ Live API calls to venues |
+| ✅ Good for screening/comparing opportunities | ❌ Exact execution cost |
+
+**Use for:** Filtering opportunities, approximate P&L, venue comparison  
+**Don't use for:** Exact execution cost, compliance reporting
+
+For account-accurate fees, you'd need to either:
+1. Provide explicit maker/taker rates via `user_context`
+2. Authenticate with venue APIs (not implemented)
+
+---
+
 ## The Problem
 
 Cross-venue arbitrage looks profitable on paper:

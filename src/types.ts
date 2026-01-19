@@ -7,6 +7,17 @@ export type OrderType = 'MARKET' | 'LIMIT';
 export type Confidence = 'high' | 'medium' | 'low';
 
 /**
+ * Fee estimation mode
+ * 
+ * PUBLIC_SCHEDULE: Uses publicly documented fee schedules. Not account-accurate.
+ *                  Good for screening opportunities, not for exact P&L.
+ * 
+ * ACCOUNT_SPECIFIC: Uses user-provided rates or authenticated API calls.
+ *                   Required for exact fee calculation.
+ */
+export type FeeEstimateMode = 'PUBLIC_SCHEDULE' | 'ACCOUNT_SPECIFIC';
+
+/**
  * Venue categories by asset type
  */
 export type VenueCategory = 'PREDICTION_MARKET' | 'SPOT_DEX' | 'PERPS';
@@ -78,6 +89,16 @@ export interface FeeEstimateParams {
 
 /**
  * Fee estimate result
+ * 
+ * ⚠️ IMPORTANT: These are PUBLIC SCHEDULE ESTIMATES based on documented fee structures.
+ * They are NOT account-accurate. Actual fees may differ based on:
+ * - User's volume tier (Hyperliquid)
+ * - Staking status (Hyperliquid)
+ * - Market-specific fee overrides (Kalshi)
+ * - Time-based promotions
+ * 
+ * Use for: Screening opportunities, approximate P&L, comparing venues
+ * Don't use for: Exact execution cost, compliance reporting
  */
 export interface FeeEstimate {
   /** Venue this estimate is for */
@@ -97,6 +118,12 @@ export interface FeeEstimate {
   
   /** Estimate confidence */
   confidence: Confidence;
+  
+  /** 
+   * Estimation mode - currently always PUBLIC_SCHEDULE
+   * Account-specific mode would require auth or explicit rates
+   */
+  mode: FeeEstimateMode;
   
   /** Assumptions made in calculation */
   assumptions: string[];

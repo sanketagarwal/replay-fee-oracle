@@ -43,6 +43,7 @@ export type {
   VenueCategory,
   OrderType,
   Confidence,
+  FeeEstimateMode,
   FeeEstimate,
   FeeEstimateParams,
   FeeBreakdown,
