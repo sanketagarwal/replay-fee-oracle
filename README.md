@@ -13,7 +13,7 @@ Replay Fee Oracle is a unified fee calculation framework that answers the critic
 | What this does | What this doesn't do |
 |----------------|---------------------|
 | ✅ Uses official fee docs (Kalshi, Polymarket, etc.) | ❌ Account-specific fees |
-| ✅ Applies probability curves (Kalshi) | ❌ Your actual volume tier |
+| ✅ Uses Kalshi's official formula | ❌ Your actual volume tier |
 | ✅ Includes gas estimates (Polygon, Base) | ❌ Live API calls to venues |
 | ✅ Good for screening/comparing opportunities | ❌ Exact execution cost |
 
@@ -262,7 +262,7 @@ These venues trade binary event contracts. The same event (e.g., "Trump wins 202
 
 | Venue | Fee Model | Key Features |
 |-------|-----------|--------------|
-| **Kalshi** | Probability-scaled | US-regulated. Higher fees at 50% odds (1%), lower at edges (0.2%) |
+| **Kalshi** | Formula: `0.07 × C × P × (1-P)` | US-regulated. Fee depends on contracts × probability variance |
 | **Polymarket** | Maker/Taker | Crypto-native on Polygon. 0% maker, 1bp taker |
 
 ### Crypto Trading Venues (Single-Venue Fee Calculation)
@@ -410,16 +410,10 @@ Current sources:
 
 ```bash
 npm run type-check  # Type check
-npm test            # Run tests (20 passing)
+npm test            # Run tests (30 passing)
 npm run build       # Build to dist/
+npx tsx examples/demo.ts  # Run interactive demo
 ```
-
-## Roadmap
-
-- [ ] Add more venues (dYdX, GMX, PredictIt)
-- [ ] Real-time fee schedule updates via API
-- [ ] Slippage estimation integration
-- [ ] Historical fee lookup for backtesting
 
 ## License
 
