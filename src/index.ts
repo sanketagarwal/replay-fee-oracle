@@ -1,7 +1,7 @@
 /**
  * Replay Cost Oracle
  * 
- * Comprehensive trading cost calculation for multi-venue trading.
+ * Comprehensive trading cost calculation for prediction markets (Kalshi, Polymarket).
  * 
  * Includes:
  * - Explicit costs: exchange fees, gas
@@ -46,7 +46,6 @@ export {
 // Types
 export type {
   Venue,
-  VenueCategory,
   OrderType,
   Confidence,
   CostEstimateMode,
@@ -67,7 +66,7 @@ export type {
 // Venue utilities
 export { 
   VENUE_INFO, 
-  PREDICTION_VENUES, 
+  SUPPORTED_VENUES, 
   canArbitrage 
 } from './types';
 
@@ -77,8 +76,6 @@ export {
   type FeeCalculator,
   KalshiFeeCalculator,
   PolymarketFeeCalculator,
-  HyperliquidFeeCalculator,
-  AerodromeFeeCalculator,
 } from './calculators';
 
 // Cost calculation utilities

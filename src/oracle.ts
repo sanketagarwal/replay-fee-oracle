@@ -17,13 +17,11 @@ import type {
   OrderbookSnapshot,
   CostEstimateMode,
 } from './types';
-import { canArbitrage, VENUE_INFO } from './types';
+import { canArbitrage } from './types';
 import { 
   type FeeCalculator,
   KalshiFeeCalculator, 
-  PolymarketFeeCalculator, 
-  HyperliquidFeeCalculator, 
-  AerodromeFeeCalculator 
+  PolymarketFeeCalculator,
 } from './calculators';
 import { 
   calculateSlippage, 
@@ -60,11 +58,9 @@ export class CostOracle {
     this.calculators = new Map();
     this.defaultMode = config?.defaultMode ?? 'PUBLIC_SCHEDULE';
     
-    // Register all fee calculators
+    // Register prediction market fee calculators
     this.registerCalculator(new KalshiFeeCalculator());
     this.registerCalculator(new PolymarketFeeCalculator());
-    this.registerCalculator(new HyperliquidFeeCalculator());
-    this.registerCalculator(new AerodromeFeeCalculator());
     
     // Initialize Replay Labs client if API key provided
     if (config?.replayLabsApiKey) {
@@ -265,9 +261,7 @@ export class CostOracle {
           const v2 = uniqueVenues[j]!;
           if (!canArbitrage(v1, v2)) {
             throw new Error(
-              `Cross-venue arbitrage not supported between ${v1} (${VENUE_INFO[v1].category}) ` +
-              `and ${v2} (${VENUE_INFO[v2].category}). ` +
-              `Cross-venue arb only applies to prediction markets (Kalshi ↔ Polymarket).`
+              `Cross-venue arbitrage requires different venues. Got ${v1} and ${v2}.`
             );
           }
         }

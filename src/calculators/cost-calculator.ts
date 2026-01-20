@@ -129,12 +129,10 @@ export function estimateSpreadCost(
   sizeUsd: number,
   price: number = 0.5
 ): number {
-  // Typical spread estimates (in probability points)
+  // Typical spread estimates for prediction markets (in probability points)
   const typicalSpreads: Record<string, number> = {
     KALSHI: 0.02,      // 2 cents typical
     POLYMARKET: 0.01,  // 1 cent typical
-    HYPERLIQUID: 0.001, // 0.1% typical
-    AERODROME: 0.003,  // 0.3% typical
   };
 
   const spread = typicalSpreads[venue] ?? 0.02;
@@ -161,8 +159,6 @@ export function estimateSlippage(
   const baseSlippagePct: Record<string, number> = {
     KALSHI: 0.001,     // 0.1% at $1000
     POLYMARKET: 0.0005, // 0.05% at $1000
-    HYPERLIQUID: 0.0002, // 0.02% at $1000
-    AERODROME: 0.001,  // 0.1% at $1000
   };
 
   const baseSlippage = baseSlippagePct[venue] ?? 0.001;

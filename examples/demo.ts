@@ -1,5 +1,5 @@
 /**
- * Demo script to manually test the Cost Oracle
+ * Demo script to test the Cost Oracle
  * 
  * Run with: npx tsx examples/demo.ts
  * 
@@ -12,8 +12,7 @@ import {
   initOracleWithReplayLabs,
   type Venue, 
   VENUE_INFO, 
-  canArbitrage, 
-  PREDICTION_VENUES 
+  SUPPORTED_VENUES,
 } from '../src';
 
 const API_KEY = process.env.REPLAY_LABS_API_KEY;
@@ -21,32 +20,21 @@ const BASE_URL = process.env.REPLAY_LABS_BASE_URL || 'https://replay-lab-delta.p
 
 async function main() {
   console.log('\n' + '═'.repeat(60));
-  console.log('🏦 REPLAY COST ORACLE DEMO');
+  console.log('🏦 REPLAY COST ORACLE - Prediction Markets');
   console.log('═'.repeat(60));
   console.log('\nCost = Explicit (fees, gas) + Implicit (spread, slippage)\n');
 
   // ═══════════════════════════════════════════════════════════════
-  // 0. VENUE CATEGORIES
+  // 0. SUPPORTED VENUES
   // ═══════════════════════════════════════════════════════════════
 
   console.log('═'.repeat(60));
-  console.log('🏛️  VENUE CATEGORIES');
+  console.log('🏛️  SUPPORTED PREDICTION MARKETS');
   console.log('═'.repeat(60));
 
-  console.log('\nPrediction Markets (cross-venue arb eligible):');
-  for (const venue of PREDICTION_VENUES) {
+  for (const venue of SUPPORTED_VENUES) {
     console.log(`  • ${venue}: ${VENUE_INFO[venue].description}`);
   }
-
-  console.log('\nCrypto Trading Venues (single-venue fee calc only):');
-  const cryptoVenues: Venue[] = ['HYPERLIQUID', 'AERODROME'];
-  for (const venue of cryptoVenues) {
-    console.log(`  • ${venue} [${VENUE_INFO[venue].category}]: ${VENUE_INFO[venue].description}`);
-  }
-
-  console.log('\nCan arbitrage check:');
-  console.log(`  KALSHI ↔ POLYMARKET:   ${canArbitrage('KALSHI', 'POLYMARKET') ? '✅ Yes' : '❌ No'}`);
-  console.log(`  KALSHI ↔ HYPERLIQUID:  ${canArbitrage('KALSHI', 'HYPERLIQUID') ? '✅ Yes' : '❌ No'} (different asset types)`);
 
   // ═══════════════════════════════════════════════════════════════
   // 1. BASIC FEE ESTIMATES (PUBLIC_SCHEDULE mode)
@@ -63,7 +51,6 @@ async function main() {
     { venue: 'KALSHI' as Venue, size: 1000, price: 0.50, label: 'Kalshi @ 50% (worst case fees)' },
     { venue: 'KALSHI' as Venue, size: 1000, price: 0.10, label: 'Kalshi @ 10% (lower fees at edge)' },
     { venue: 'POLYMARKET' as Venue, size: 1000, price: 0.50, label: 'Polymarket @ 50%' },
-    { venue: 'HYPERLIQUID' as Venue, size: 1000, price: undefined, label: 'Hyperliquid (base tier)' },
   ];
 
   for (const trade of trades) {

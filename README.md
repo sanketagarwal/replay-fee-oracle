@@ -2,16 +2,16 @@
 
 **The hidden killer of arbitrage profits isn't finding opportunities—it's costs eating them alive.**
 
-Replay Cost Oracle is a comprehensive trading cost framework that answers: *"After ALL costs, is this trade actually profitable?"*
+A comprehensive trading cost framework for **prediction markets** (Kalshi, Polymarket) that answers: *"After ALL costs, is this trade actually profitable?"*
 
 ## What Makes This Different
 
-Most fee calculators only consider explicit costs (exchange fees). This oracle captures **total trading friction**:
+Most fee calculators only consider explicit costs. This oracle captures **total trading friction**:
 
 | Cost Type | What It Is | How We Calculate |
 |-----------|-----------|------------------|
-| **Explicit: Exchange Fee** | Platform's cut | Venue-specific formulas (Kalshi: `0.07×C×P×(1-P)`) |
-| **Explicit: Gas Fee** | On-chain execution | Chain gas estimates (Polygon, Base) |
+| **Explicit: Exchange Fee** | Platform's cut | Kalshi: `0.07×C×P×(1-P)`, Polymarket: 1bp taker |
+| **Explicit: Gas Fee** | On-chain execution | Polygon gas estimates |
 | **Implicit: Spread Cost** | Crossing bid-ask | Live orderbook: `(ask - mid) × contracts` |
 | **Implicit: Slippage** | Walking the book | Live orderbook: weighted avg vs best price |
 
@@ -68,7 +68,11 @@ Uses Replay Labs API for real-time spread and slippage calculation.
 ```ts
 import { initOracleWithReplayLabs } from 'replay-fee-oracle';
 
-const oracle = initOracleWithReplayLabs('your-api-key', 'https://replay-lab-delta.preview.recall.network');
+const oracle = initOracleWithReplayLabs(
+  'your-api-key', 
+  'https://replay-lab-delta.preview.recall.network'
+);
+
 const cost = await oracle.estimateCost({
   venue: 'KALSHI',
   size_usd: 1000,
@@ -130,30 +134,12 @@ if (arb.is_profitable) {
 
 ## Supported Venues
 
-### Prediction Markets (Cross-Venue Arbitrage Eligible)
-
-Same event can exist on both → arbitrage possible.
-
 | Venue | Fee Model | Key Features |
 |-------|-----------|--------------|
-| **Kalshi** | `0.07 × C × P × (1-P)` | US-regulated. Fee peaks at 50% odds. |
-| **Polymarket** | 0% maker, 1bp taker | Crypto-native on Polygon. |
+| **Kalshi** | `0.07 × C × P × (1-P)` | US-regulated. Fee peaks at 50% odds, lower at extremes. |
+| **Polymarket** | 0% maker, 1bp taker | Crypto-native on Polygon. Minimal fees. |
 
-### Crypto Trading Venues (Single-Venue Only)
-
-Different asset classes → no cross-venue arb.
-
-| Venue | Asset Type | Fee Model |
-|-------|------------|-----------|
-| **Hyperliquid** | Perps | Volume-tiered + staking discounts |
-| **Aerodrome** | Spot DEX | Pool-based (1-100bps) |
-
-```ts
-import { canArbitrage } from 'replay-fee-oracle';
-
-canArbitrage('KALSHI', 'POLYMARKET');   // true ✅
-canArbitrage('KALSHI', 'HYPERLIQUID');  // false ❌
-```
+Both are prediction markets trading binary event contracts → cross-venue arbitrage is possible when the same event exists on both.
 
 ---
 
@@ -225,8 +211,6 @@ npx tsx examples/demo.ts
 
 - Kalshi: https://help.kalshi.com/trading/fees
 - Polymarket: https://docs.polymarket.com/polymarket-learn/trading/fees
-- Hyperliquid: https://www.hyperliquid.review/fees
-- Aerodrome: https://aerodrome.finance/docs
 
 ---
 

@@ -6,7 +6,11 @@
  * - Cost = fee + gas + spread + slippage (total trading friction)
  */
 
-export type Venue = 'KALSHI' | 'POLYMARKET' | 'HYPERLIQUID' | 'AERODROME';
+/**
+ * Supported prediction market venues
+ */
+export type Venue = 'KALSHI' | 'POLYMARKET';
+
 export type OrderType = 'MARKET' | 'LIMIT';
 export type Confidence = 'high' | 'medium' | 'low';
 
@@ -28,47 +32,28 @@ export type CostEstimateMode = 'PUBLIC_SCHEDULE' | 'LIVE_ORDERBOOK' | 'ACCOUNT_S
 export type FeeEstimateMode = CostEstimateMode;
 
 /**
- * Venue categories by asset type
+ * Venue metadata
  */
-export type VenueCategory = 'PREDICTION_MARKET' | 'SPOT_DEX' | 'PERPS';
-
-/**
- * Venue metadata including category
- */
-export const VENUE_INFO: Record<Venue, { category: VenueCategory; description: string }> = {
+export const VENUE_INFO: Record<Venue, { description: string }> = {
   KALSHI: { 
-    category: 'PREDICTION_MARKET', 
     description: 'US-regulated prediction market for binary event contracts' 
   },
   POLYMARKET: { 
-    category: 'PREDICTION_MARKET', 
     description: 'Crypto-native prediction market on Polygon' 
-  },
-  HYPERLIQUID: { 
-    category: 'PERPS', 
-    description: 'Perpetual futures DEX for crypto assets' 
-  },
-  AERODROME: { 
-    category: 'SPOT_DEX', 
-    description: 'Spot DEX on Base for crypto asset swaps' 
   },
 };
 
 /**
- * Prediction market venues (eligible for cross-venue arbitrage)
+ * All supported venues (all are prediction markets)
  */
-export const PREDICTION_VENUES: Venue[] = ['KALSHI', 'POLYMARKET'];
+export const SUPPORTED_VENUES: Venue[] = ['KALSHI', 'POLYMARKET'];
 
 /**
- * Check if two venues are eligible for cross-venue arbitrage
- * (must both be prediction markets trading the same event)
+ * Check if two venues can be used for cross-venue arbitrage
+ * (both must be prediction markets - which all our venues are)
  */
 export function canArbitrage(venue1: Venue, venue2: Venue): boolean {
-  return (
-    VENUE_INFO[venue1].category === 'PREDICTION_MARKET' &&
-    VENUE_INFO[venue2].category === 'PREDICTION_MARKET' &&
-    venue1 !== venue2
-  );
+  return venue1 !== venue2;
 }
 
 /**
