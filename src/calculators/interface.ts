@@ -4,7 +4,7 @@
  * All venue-specific calculators extend this.
  */
 
-import type { Venue, FeeEstimate, FeeEstimateParams, FeeSchedule, FeeBreakdown, Confidence, FeeEstimateMode } from '../types';
+import type { Venue, FeeEstimate, FeeEstimateParams, FeeSchedule, FeeBreakdown, Confidence, CostEstimateMode } from '../types';
 
 /**
  * Fee calculator interface that all venue implementations must follow
@@ -44,7 +44,7 @@ export abstract class BaseFeeCalculator implements FeeCalculator {
     breakdown: Partial<FeeBreakdown>,
     confidence: Confidence,
     assumptions: string[],
-    mode: FeeEstimateMode = 'PUBLIC_SCHEDULE'
+    mode: CostEstimateMode = 'PUBLIC_SCHEDULE'
   ): FeeEstimate {
     const exchangeFee = breakdown.exchange_fee ?? 0;
     const gasFee = breakdown.gas_fee ?? 0;
@@ -58,7 +58,7 @@ export abstract class BaseFeeCalculator implements FeeCalculator {
     // Add mode disclaimer to assumptions
     const modeDisclaimer = mode === 'PUBLIC_SCHEDULE' 
       ? '⚠️ PUBLIC_SCHEDULE: Based on documented fees, not account-specific'
-      : '✅ ACCOUNT_SPECIFIC: Using provided/authenticated rates';
+      : '✅ Using provided/authenticated rates';
     
     return {
       venue: this.venue,
@@ -67,10 +67,10 @@ export abstract class BaseFeeCalculator implements FeeCalculator {
       fee_pct: feePct,
       breakdown: {
         exchange_fee: exchangeFee,
-        gas_fee: gasFee || undefined,
-        slippage_estimate: slippage || undefined,
-        settlement_fee: settlement || undefined,
-        rebate: rebate || undefined,
+        gas_fee: gasFee,
+        slippage_estimate: slippage,
+        settlement_fee: settlement,
+        rebate: rebate,
       },
       confidence,
       mode,
